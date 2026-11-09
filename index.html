@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07111f">
+<title>Space Voyage</title>
+<style>
+  :root { color-scheme: dark; --bg:#07111f; --panel:#0d1b2d; --line:#20344c; --muted:#8da2bb; --text:#edf5ff; --accent:#7cc8ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(ellipse at 50% -20%, #183554 0%, var(--bg) 55%); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+  main { width:min(760px,100%); margin:0 auto; padding:28px 18px calc(36px + env(safe-area-inset-bottom)); }
+  header { text-align:center; padding:12px 0 22px; }
+  .eyebrow { color:var(--accent); font-size:11px; letter-spacing:.22em; text-transform:uppercase; }
+  h1 { margin:9px 0 5px; font-size:clamp(29px,7vw,42px); font-weight:600; letter-spacing:.02em; }
+  .sub { color:var(--muted); font-size:13px; }
+  .panel { background:linear-gradient(145deg,rgba(16,34,54,.96),rgba(9,22,37,.96)); border:1px solid var(--line); border-radius:18px; padding:20px; margin:12px 0; box-shadow:0 12px 36px rgba(0,0,0,.16); }
+  .label { color:var(--muted); font-size:11px; letter-spacing:.13em; text-transform:uppercase; }
+  .speed { text-align:center; padding:24px 12px 20px; }
+  .speed-number { font-size:clamp(40px,11vw,66px); font-weight:650; letter-spacing:-.045em; line-height:1.1; margin:10px 0 3px; overflow-wrap:anywhere; }
+  .unit { color:var(--muted); font-size:14px; }
+  .tap { display:block; width:min(310px,100%); margin:20px auto 0; border:0; border-radius:999px; padding:17px 20px; color:#07111f; background:linear-gradient(135deg,#a5ddff,#5db7f4); font-size:17px; font-weight:700; box-shadow:0 7px 24px rgba(83,174,239,.22); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .tap:active { transform:scale(.98); }
+  .tap small { display:block; font-size:11px; font-weight:500; opacity:.72; margin-top:3px; }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat { min-width:0; background:rgba(4,13,24,.32); border:1px solid rgba(51,77,104,.55); border-radius:13px; padding:15px; }
+  .value { margin-top:8px; font-size:clamp(17px,4.6vw,23px); font-weight:600; overflow-wrap:anywhere; }
+  .small-unit { color:var(--muted); font-size:11px; margin-top:3px; }
+  .destination { display:flex; justify-content:space-between; gap:14px; align-items:baseline; margin:10px 0 12px; }
+  .destination strong { font-size:18px; font-weight:600; text-align:right; }
+  .bar { height:8px; background:#1b3047; border-radius:20px; overflow:hidden; }
+  .fill { height:100%; width:0%; background:linear-gradient(90deg,#4e9ed6,#9ddcff); border-radius:20px; transition:width .3s ease; }
+  .progress-line { display:flex; justify-content:space-between; gap:12px; color:var(--muted); font-size:12px; margin-top:9px; }
+  .milestones { display:grid; gap:0; margin-top:9px; }
+  .milestone { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid rgba(48,72,97,.45); }
+  .milestone:last-child { border-bottom:0; }
+  .milestone-name { font-size:14px; }
+  .milestone-distance { color:var(--muted); font-size:12px; text-align:right; white-space:nowrap; }
+  .done { color:#a7d9ff; }
+  .actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:14px; }
+  .secondary { border:1px solid #34506d; background:#10243a; color:var(--text); border-radius:10px; padding:10px 13px; font-size:13px; cursor:pointer; }
+  .secondary:active { background:#1a3552; }
+  .foot { text-align:center; color:#71869e; font-size:11px; line-height:1.6; padding:10px 12px; }
+  #saveStatus { color:#8ea8c1; font-size:11px; text-align:center; margin-top:13px; }
+  @media (max-width:420px) { main{padding-left:13px;padding-right:13px}.panel{padding:16px}.stat{padding:13px} }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">A journey beyond Earth</div>
+    <h1>Space Voyage</h1>
+    <div class="sub">One tap. One more kilometre per hour. Keep going.</div>
+  </header>
+
+  <section class="panel speed">
+    <div class="label">Current spacecraft speed</div>
+    <div class="speed-number" id="speed">0</div>
+    <div class="unit">km/h</div>
+    <button class="tap" id="tapButton">ACCELERATE <small>+1 km/h permanently</small></button>
+    <div id="saveStatus" aria-live="polite">Save ready</div>
+  </section>
+
+  <section class="panel">
+    <div class="stats">
+      <div class="stat">
+        <div class="label">Distance travelled</div>
+        <div class="value" id="distance">0 km</div>
+      </div>
+      <div class="stat">
+        <div class="label">Total taps</div>
+        <div class="value" id="taps">0</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="label">Next destination</div>
+    <div class="destination"><strong id="nextName">The Moon</strong></div>
+    <div class="bar"><div class="fill" id="progressFill"></div></div>
+    <div class="progress-line"><span id="progressText">0%</span><span id="remaining">384,400 km remaining</span></div>
+    <div class="progress-line"><span>Estimated arrival</span><span id="eta">—</span></div>
+  </section>
+
+  <section class="panel">
+    <div class="label">Journey milestones</div>
+    <div class="milestones" id="milestones"></div>
+  </section>
+
+  <section class="panel">
+    <div class="label">Save management</div>
+    <div class="actions">
+      <button class="secondary" id="exportButton">Export save</button>
+      <button class="secondary" id="importButton">Import save</button>
+      <button class="secondary" id="resetButton">Reset voyage</button>
+      <input id="importFile" type="file" accept="application/json,.json" hidden>
+    </div>
+    <div class="foot" style="padding:12px 0 0;text-align:left">
+      Progress is saved in this browser on this device. Export a backup occasionally, especially before clearing Safari data or changing devices.
+    </div>
+  </section>
+  <div class="foot">Distances are fixed reference values. This voyage ignores the real-life speed-of-light limit, as requested.</div>
+</main>
+
+<script>
+(() => {
+  "use strict";
+  const KEY = "spaceVoyageStandalone_v1";
+  const milestones = [
+    { name:"The Moon", km:384400 },
+    { name:"Mars", km:225000000 },
+    { name:"Jupiter", km:778500000 },
+    { name:"Saturn", km:1430000000 },
+    { name:"Uranus", km:2870000000 },
+    { name:"Neptune", km:4500000000 },
+    { name:"Heliopause", km:18200000000 },
+    { name:"Interstellar space", km:20000000000 },
+    { name:"Voyager 1 reference point", km:25000000000 },
+    { name:"Andromeda Galaxy", km:2.4e19 }
+  ];
+  const $ = id => document.getElementById(id);
+  let state = { speed:0, distance:0, taps:0, updatedAt:Date.now() };
+  let lastFrame = performance.now();
+  let lastSave = 0;
+
+  function safeNumber(n, fallback=0) {
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  }
+  function formatNumber(n, digits=2) {
+    if (!Number.isFinite(n)) return "∞";
+    if (n === 0) return "0";
+    if (Math.abs(n) >= 1e15) return n.toExponential(3);
+    return new Intl.NumberFormat("en-US", { maximumFractionDigits:digits }).format(n);
+  }
+  function formatDistance(n) { return formatNumber(n, 2) + " km"; }
+  function formatDuration(hours) {
+    if (!Number.isFinite(hours)) return "Beyond calculation";
+    if (hours <= 0) return "Arrived";
+    const years = hours / 24 / 365.25;
+    if (years >= 1e6) return formatNumber(years, 2) + " years";
+    if (years >= 1) return formatNumber(years, 2) + " years";
+    const days = hours / 24;
+    if (days >= 1) return formatNumber(days, 2) + " days";
+    if (hours >= 1) return formatNumber(hours, 2) + " hours";
+    return formatNumber(hours * 60, 2) + " minutes";
+  }
+  function save(showStatus=true) {
+    state.updatedAt = Date.now();
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+      if (showStatus) $("saveStatus").textContent = "Saved on this device";
+    } catch (e) {
+      $("saveStatus").textContent = "Browser storage unavailable — export a backup";
+    }
+  }
+  function advanceTo(now) {
+    const elapsedMs = Math.max(0, now - state.updatedAt);
+    if (elapsedMs > 0 && state.speed > 0) {
+      state.distance += state.speed * (elapsedMs / 3600000);
+    }
+    state.updatedAt = now;
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state.speed = safeNumber(parsed.speed);
+        state.distance = safeNumber(parsed.distance);
+        state.taps = Math.floor(safeNumber(parsed.taps));
+        const savedAt = safeNumber(parsed.updatedAt, Date.now());
+        state.updatedAt = savedAt || Date.now();
+        advanceTo(Date.now());
+        save(false);
+        $("saveStatus").textContent = "Voyage restored";
+      }
+    } catch (e) {
+      $("saveStatus").textContent = "Could not read saved voyage";
+    }
+  }
+  function render() {
+    $("speed").textContent = formatNumber(state.speed, 0);
+    $("distance").textContent = formatDistance(state.distance);
+    $("taps").textContent = formatNumber(state.taps, 0);
+
+    const next = milestones.find(m => state.distance < m.km);
+    if (!next) {
+      $("nextName").textContent = "Andromeda reached";
+      $("progressFill").style.width = "100%";
+      $("progressText").textContent = "100%";
+      $("remaining").textContent = "Destination reached";
+      $("eta").textContent = "Arrived";
+    } else {
+      const previous = [...milestones].reverse().find(m => m.km <= state.distance);
+      const start = previous ? previous.km : 0;
+      const fraction = next.km === start ? 1 : Math.max(0, Math.min(1, (state.distance - start) / (next.km - start)));
+      const percent = fraction * 100;
+      const remaining = Math.max(0, next.km - state.distance);
+      $("nextName").textContent = next.name;
+      $("progressFill").style.width = percent + "%";
+      $("progressText").textContent = formatNumber(percent, 5) + "%";
+      $("remaining").textContent = formatDistance(remaining) + " remaining";
+      $("eta").textContent = state.speed > 0 ? formatDuration((remaining / state.speed)) : "Increase speed to begin";
+    }
+    $("milestones").innerHTML = milestones.map(m => {
+      const reached = state.distance >= m.km;
+      return `<div class="milestone"><span class="milestone-name ${reached ? "done" : ""}">${reached ? "✓ " : ""}${m.name}</span><span class="milestone-distance">${formatNumber(m.km, 3)} km</span></div>`;
+    }).join("");
+  }
+  function frame(now) {
+    const elapsed = Math.max(0, now - lastFrame);
+    lastFrame = now;
+    if (elapsed > 0 && state.speed > 0) {
+      state.distance += state.speed * (elapsed / 3600000);
+    }
+    if (now - lastSave > 1000) {
+      save(false);
+      lastSave = now;
+    }
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  $("tapButton").addEventListener("click", () => {
+    state.speed += 1;
+    state.taps += 1;
+    save();
+    render();
+  });
+
+  $("exportButton").addEventListener("click", () => {
+    advanceTo(Date.now());
+    save();
+    const blob = new Blob([JSON.stringify({ app:"Space Voyage", version:1, ...state }, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "space-voyage-save.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    $("saveStatus").textContent = "Backup exported";
+  });
+
+  $("importButton").addEventListener("click", () => $("importFile").click());
+  $("importFile").addEventListener("change", async event => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    try {
+      const imported = JSON.parse(await file.text());
+      const candidate = imported.state || imported;
+      if (!Number.isFinite(candidate.speed) || !Number.isFinite(candidate.distance) || !Number.isFinite(candidate.taps)) {
+        throw new Error("Invalid save file");
+      }
+      if (!confirm("Import this save and replace the current voyage?")) return;
+      state = {
+        speed:safeNumber(candidate.speed),
+        distance:safeNumber(candidate.distance),
+        taps:Math.floor(safeNumber(candidate.taps)),
+        updatedAt:safeNumber(candidate.updatedAt, Date.now())
+      };
+      advanceTo(Date.now());
+      save();
+      render();
+      $("saveStatus").textContent = "Backup imported";
+    } catch (e) {
+      alert("That save file could not be read.");
+    } finally {
+      event.target.value = "";
+    }
+  });
+
+  $("resetButton").addEventListener("click", () => {
+    if (!confirm("Reset the entire voyage? Export a backup first if you want to keep your progress.")) return;
+    state = { speed:0, distance:0, taps:0, updatedAt:Date.now() };
+    save();
+    render();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      advanceTo(Date.now());
+      save(false);
+    } else {
+      advanceTo(Date.now());
+      lastFrame = performance.now();
+      save(false);
+      render();
+    }
+  });
+  window.addEventListener("pagehide", () => {
+    advanceTo(Date.now());
+    save(false);
+  });
+
+  load();
+  render();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
